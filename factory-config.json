@@ -1,0 +1,22 @@
+{
+  "maxCycle": 5,
+  "adjacentRepo": [
+    {
+      "repo": "git@github.com:apify/pi.git",
+      "permission": "read"
+    }
+  ],
+  "validator": {
+    "setup": "setup:pi",
+    "cleanup": "cleanup:pi",
+    "context": [
+      "context/PI_VALIDATION_SKILL.md"
+    ]
+  },
+  "coder": {
+    "context": [
+      "context/PLUGIN_SKILL.md",
+      "CLAUDE.md"
+    ]
+  }
+}
