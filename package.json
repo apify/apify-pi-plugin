@@ -1,10 +1,39 @@
 {
   "name": "apify-pi-plugin",
   "version": "1.0.0",
-  "private": true,
-  "description": "Apify integration plugin for the pi agent",
+  "description": "Apify Actor integration for Pi agent -- universal apify tool (discover/start/collect) wrapping 20,000+ Actors",
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "pi": {
+    "extensions": ["."]
+  },
   "scripts": {
+    "check": "tsc --noEmit",
     "setup:pi": "bash scripts/setup.sh",
     "cleanup:pi": "rm -rf .pi-install ~/.pi/agent/auth.json ~/.pi/agent/apify.json 2>/dev/null; true"
-  }
+  },
+  "dependencies": {
+    "apify-client": "^2.9.12"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  },
+  "keywords": [
+    "apify",
+    "pi",
+    "agent",
+    "plugin",
+    "web-scraping",
+    "automation"
+  ],
+  "author": "",
+  "license": "ISC"
 }

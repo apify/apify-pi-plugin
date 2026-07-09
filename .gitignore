@@ -1,3 +1,37 @@
-.env
+# Dependencies
 node_modules/
+
+# Build outputs
+dist/
+build/
+*.js
+*.d.ts
+*.js.map
+
+# Test files (except test-structure.js)
+!test-structure.js
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Pi agent runtime
 .pi-install/
+.pi/
+
+# Coverage
+coverage/
+.nyc_output/
