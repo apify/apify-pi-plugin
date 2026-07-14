@@ -1,7 +1,7 @@
 import { Type } from "@earendil-works/pi-ai";
 import { defineTool } from "@earendil-works/pi-coding-agent";
-import { apifyExecute } from "./execute.js";
-import { KNOWN_ACTORS } from "./constants.js";
+import { apifyExecute } from "./actions/index.ts";
+import { KNOWN_ACTORS } from "./utils/constants.ts";
 
 // Build the full tool description
 const toolDescription = `

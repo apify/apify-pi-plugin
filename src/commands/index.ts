@@ -1,7 +1,7 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createClient, testConnectivity } from "./client.js";
-import { loadConfig, writeGlobalConfig, resolveApiKey } from "./config.js";
-import { normalizeSecretInput, fingerprintKey } from "./normalize.js";
+import { createClient, testConnectivity } from "../utils/client.ts";
+import { loadConfig, writeGlobalConfig, resolveApiKey } from "../utils/config.ts";
+import { normalizeSecretInput, fingerprintKey } from "../utils/normalize.ts";
 
 /**
  * Handle /apify login command.
