@@ -1,9 +1,9 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { apifyTool } from "./tool.js";
-import { apifyLoginCommand, apifyStatusCommand, apifyTestCommand } from "./commands.js";
-import { loadConfig, resolveApiKey } from "./config.js";
-import { createClient, testConnectivity } from "./client.js";
-import { fingerprintKey } from "./normalize.js";
+import { apifyTool } from "./src/tool.ts";
+import { apifyLoginCommand, apifyStatusCommand, apifyTestCommand } from "./src/commands/index.ts";
+import { loadConfig, resolveApiKey } from "./src/utils/config.ts";
+import { createClient, testConnectivity } from "./src/utils/client.ts";
+import { fingerprintKey } from "./src/utils/normalize.ts";
 
 /**
  * Apify Pi Plugin - Universal Apify Actor integration for the Pi agent.

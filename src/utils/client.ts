@@ -1,7 +1,7 @@
 import { ApifyClient } from "apify-client";
-import type { ApifyConfig } from "./config.js";
-import { normalizeSecretInput } from "./normalize.js";
-import { resolveApiKey } from "./config.js";
+import type { ApifyConfig } from "./config.ts";
+import { normalizeSecretInput } from "./normalize.ts";
+import { resolveApiKey } from "./config.ts";
 
 /**
  * Create an ApifyClient instance with proper configuration and telemetry headers.
