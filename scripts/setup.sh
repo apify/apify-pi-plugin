@@ -32,3 +32,19 @@ AUTH_EOF
 chmod 600 ~/.pi/agent/auth.json
 
 echo "pi setup complete (installed at $PI_DIR)"
+
+# Register the plugin persistently with pi
+echo "Registering apify-pi-plugin with pi..."
+if command -v pi >/dev/null 2>&1; then
+  # Check if plugin is already installed
+  if pi list 2>&1 | grep -q "apify-pi-plugin"; then
+    echo "Plugin already registered with pi"
+  else
+    # Install the plugin using the local path
+    pi install "$REPO_ROOT" 2>&1 | tail -5
+    echo "Plugin registered. It will be auto-loaded in all pi sessions."
+  fi
+else
+  echo "Warning: 'pi' command not found in PATH. Plugin not registered."
+  echo "After adding pi to PATH, run: pi install $REPO_ROOT"
+fi
