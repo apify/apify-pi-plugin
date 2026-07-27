@@ -42,14 +42,17 @@ try {
 console.log('3. Checking required files...');
 const requiredFiles = [
   'index.ts',
-  'tool.ts',
-  'execute.ts',
-  'commands.ts',
-  'config.ts',
-  'client.ts',
-  'constants.ts',
-  'wrap.ts',
-  'normalize.ts',
+  'src/tool.ts',
+  'src/actions/index.ts',
+  'src/actions/discover.ts',
+  'src/actions/start.ts',
+  'src/actions/collect.ts',
+  'src/commands/index.ts',
+  'src/utils/config.ts',
+  'src/utils/client.ts',
+  'src/utils/constants.ts',
+  'src/utils/wrap.ts',
+  'src/utils/normalize.ts',
   'tsconfig.json',
   'README.md'
 ];
@@ -62,6 +65,31 @@ for (const file of requiredFiles) {
     console.log(`   ❌ ${file} - missing`);
     throw error;
   }
+}
+
+// Test 4: Check curated X Actor catalog
+console.log('\n4. Checking curated X Actor catalog...');
+const constants = readFileSync(join(__dirname, 'src/utils/constants.ts'), 'utf8');
+const readme = readFileSync(join(__dirname, 'README.md'), 'utf8');
+const xActors = [
+  {
+    slug: 'xquik~x-tweet-scraper',
+    url: 'https://apify.com/xquik/x-tweet-scraper',
+  },
+  {
+    slug: 'xquik~x-follower-scraper',
+    url: 'https://apify.com/xquik/x-follower-scraper',
+  },
+];
+
+for (const actor of xActors) {
+  if (!constants.includes(actor.slug)) {
+    throw new Error(`Missing ${actor.slug} from the known Actor catalog`);
+  }
+  if (!readme.includes(actor.url)) {
+    throw new Error(`Missing ${actor.url} from the README`);
+  }
+  console.log(`   ✅ ${actor.slug}`);
 }
 
 console.log('\n✅ All structure tests passed!');

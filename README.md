@@ -142,9 +142,12 @@ The tool includes a curated catalog of popular Actors:
 - **Facebook**: `apify~facebook-pages-scraper`, `apify~facebook-posts-scraper`, etc.
 - **TikTok**: `clockworks~tiktok-scraper`, `clockworks~tiktok-profile-scraper`, etc.
 - **YouTube**: `streamers~youtube-scraper`, `streamers~youtube-channel-scraper`, etc.
+- **Twitter/X**: [`xquik~x-tweet-scraper`](https://apify.com/xquik/x-tweet-scraper), [`xquik~x-follower-scraper`](https://apify.com/xquik/x-follower-scraper)
 - **Google Maps**: `compass~crawler-google-places`, `compass~google-maps-extractor`, etc.
 
 See the full list in the tool description.
+
+Xquik is an independent third-party service. Not affiliated with X Corp. "Twitter" and "X" are trademarks of X Corp.
 
 ## Security
 
@@ -164,7 +167,7 @@ npm install
 # Type check
 npm run check
 
-# Run tests (if available)
+# Run structural tests
 npm test
 ```
 
