@@ -15,7 +15,7 @@ TIKTOK: clockworks~tiktok-scraper, clockworks~free-tiktok-scraper, clockworks~ti
 
 YOUTUBE: streamers~youtube-scraper, streamers~youtube-channel-scraper, streamers~youtube-comments-scraper, streamers~youtube-shorts-scraper, streamers~youtube-video-scraper-by-hashtag, apidojo~youtube-playlist-scraper
 
-TWITTER/X: apidojo~tweet-scraper, apidojo~twitter-scraper-lite, apidojo~twitter-user-scraper, apidojo~twitter-list-scraper
+TWITTER/X: xquik~x-tweet-scraper, xquik~x-follower-scraper, apidojo~tweet-scraper, apidojo~twitter-scraper-lite, apidojo~twitter-user-scraper, apidojo~twitter-list-scraper
 
 GOOGLE MAPS: compass~crawler-google-places, compass~google-maps-extractor, compass~Google-Maps-Reviews-Scraper, poidata~google-maps-email-extractor
 
