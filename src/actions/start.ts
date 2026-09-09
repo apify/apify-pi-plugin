@@ -1,6 +1,6 @@
 import type { AgentToolResult } from "@earendil-works/pi-coding-agent";
 import type { ApifyToolParams, StartDetails } from "../types/index.ts";
-import { validateSlug } from "../utils/normalize.ts";
+import { validateSlug } from "../security/index.ts";
 
 /**
  * Handle start action (launch actor run).
