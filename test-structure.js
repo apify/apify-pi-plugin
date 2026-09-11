@@ -52,13 +52,13 @@ const requiredFiles = [
   'src/commands/login.ts',
   'src/commands/status.ts',
   'src/commands/test.ts',
-  'src/config/index.ts',
-  'src/client/index.ts',
   'src/security/index.ts',
   'src/security/normalize.ts',
   'src/security/wrap.ts',
-  'src/constants/index.ts',
-  'src/types/index.ts',
+  'src/utils/config.ts',
+  'src/utils/client.ts',
+  'src/utils/constants.ts',
+  'src/utils/types.ts',
   'tsconfig.json',
   'README.md'
 ];

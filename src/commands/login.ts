@@ -1,6 +1,6 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createClient, testConnectivity } from "../client/index.ts";
-import { loadConfig, writeGlobalConfig } from "../config/index.ts";
+import { createClient, testConnectivity } from "../utils/client.ts";
+import { loadConfig, writeGlobalConfig } from "../utils/config.ts";
 import { normalizeSecretInput, fingerprintKey } from "../security/index.ts";
 
 /**

@@ -1,5 +1,5 @@
 import type { AgentToolResult } from "@earendil-works/pi-coding-agent";
-import type { ApifyToolParams, StartDetails } from "../types/index.ts";
+import type { ApifyToolParams, StartDetails } from "../utils/types.ts";
 import { validateSlug } from "../security/index.ts";
 
 /**

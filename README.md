@@ -189,18 +189,15 @@ src/
     login.ts              #   /apify login
     status.ts             #   /apify status
     test.ts               #   /apify test
-  config/                 # config load / merge / resolve
-    index.ts
-  client/                 # ApifyClient creation + connectivity check
-    index.ts
   security/               # input/output safety helpers
     index.ts              #   barrel re-exporting normalize + wrap
     normalize.ts          #   secret normalization, slug validation, fingerprint
     wrap.ts               #   untrusted-content wrapping (prompt-injection defense)
-  constants/              # shared constants (limits, markers, known actors)
-    index.ts
-  types/                  # shared TypeScript interfaces
-    index.ts
+  utils/                  # single-concern helpers, one flat file each
+    config.ts             #   config load / merge / resolve
+    client.ts             #   ApifyClient creation + connectivity check
+    constants.ts          #   shared constants (limits, markers, known actors)
+    types.ts              #   shared TypeScript interfaces
 ```
 
 ## License

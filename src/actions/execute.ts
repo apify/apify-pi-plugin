@@ -1,7 +1,7 @@
 import type { AgentToolResult, AgentToolUpdateCallback, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { ApifyToolParams, ApifyToolDetails, DiscoverDetails } from "../types/index.ts";
-import { createClient } from "../client/index.ts";
-import { loadConfig, resolveApiKey } from "../config/index.ts";
+import type { ApifyToolParams, ApifyToolDetails, DiscoverDetails } from "../utils/types.ts";
+import { createClient } from "../utils/client.ts";
+import { loadConfig, resolveApiKey } from "../utils/config.ts";
 import { handleDiscover } from "./discover.ts";
 import { handleStart } from "./start.ts";
 import { handleCollect } from "./collect.ts";

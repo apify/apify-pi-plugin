@@ -1,6 +1,6 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createClient, testConnectivity } from "../client/index.ts";
-import { loadConfig, resolveApiKey } from "../config/index.ts";
+import { createClient, testConnectivity } from "../utils/client.ts";
+import { loadConfig, resolveApiKey } from "../utils/config.ts";
 
 /**
  * Handle /apify test command.
