@@ -1,6 +1,6 @@
 import type { AgentToolResult } from "@earendil-works/pi-coding-agent";
-import type { ApifyToolParams, CollectDetails } from "../types/index.ts";
-import { wrapUntrustedContent } from "../utils/wrap.ts";
+import type { ApifyToolParams, CollectDetails } from "../utils/types.ts";
+import { wrapUntrustedContent } from "../security/index.ts";
 import { MAX_RESULT_CHARS } from "../utils/constants.ts";
 
 // Maximum number of items per dataset to prevent context overflow

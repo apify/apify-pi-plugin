@@ -1,6 +1,6 @@
 import { ApifyClient } from "apify-client";
 import type { ApifyConfig } from "./config.ts";
-import { normalizeSecretInput } from "./normalize.ts";
+import { normalizeSecretInput } from "../security/index.ts";
 import { resolveApiKey } from "./config.ts";
 
 /**

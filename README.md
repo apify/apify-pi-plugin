@@ -168,6 +168,38 @@ npm run check
 npm test
 ```
 
+## Project structure
+
+The plugin is organized into purpose-named feature folders under `src/`, each
+concern in its own module with a barrel `index.ts` where a folder groups several
+files:
+
+```
+index.ts                  # extension entry point (registers tool, command, hook)
+src/
+  tool.ts                 # the universal `apify` tool definition
+  actions/                # tool action layer
+    index.ts              #   barrel re-exporting the router + handlers
+    execute.ts            #   apifyExecute router (config gate → handler dispatch)
+    discover.ts           #   discover action (search / schema)
+    start.ts              #   start action (launch a run)
+    collect.ts            #   collect action (poll runs & fetch datasets)
+  commands/               # /apify slash-command handlers
+    index.ts              #   barrel re-exporting the three commands
+    login.ts              #   /apify login
+    status.ts             #   /apify status
+    test.ts               #   /apify test
+  security/               # input/output safety helpers
+    index.ts              #   barrel re-exporting normalize + wrap
+    normalize.ts          #   secret normalization, slug validation, fingerprint
+    wrap.ts               #   untrusted-content wrapping (prompt-injection defense)
+  utils/                  # single-concern helpers, one flat file each
+    config.ts             #   config load / merge / resolve
+    client.ts             #   ApifyClient creation + connectivity check
+    constants.ts          #   shared constants (limits, markers, known actors)
+    types.ts              #   shared TypeScript interfaces
+```
+
 ## License
 
 ISC
