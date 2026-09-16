@@ -1,4 +1,4 @@
-import { EXTERNAL_CONTENT_START, EXTERNAL_CONTENT_END, MAX_RESULT_CHARS } from "./constants.ts";
+import { EXTERNAL_CONTENT_START, EXTERNAL_CONTENT_END, MAX_RESULT_CHARS } from "../utils/constants.ts";
 
 /**
  * Sanitize content to prevent marker collision.

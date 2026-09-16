@@ -1,6 +1,6 @@
 import type { AgentToolResult } from "@earendil-works/pi-coding-agent";
-import type { ApifyToolParams, DiscoverDetails } from "../types/index.ts";
-import { validateSlug } from "../utils/normalize.ts";
+import type { ApifyToolParams, DiscoverDetails } from "../utils/types.ts";
+import { validateSlug } from "../security/index.ts";
 
 /**
  * Handle discover action (search or schema mode).
