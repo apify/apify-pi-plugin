@@ -4,11 +4,34 @@ Universal Apify Actor integration for the Pi agent. Access 20,000+ web scraping 
 
 ## Installation
 
+First, install the plugin dependencies:
+
 ```bash
-npm install apify-pi-plugin
+cd apify-pi-plugin
+npm install --ignore-scripts
 ```
 
-Then add to your Pi agent extensions:
+Then register the plugin with Pi using one of these methods:
+
+### Primary method: Persistent installation
+
+```bash
+# Local path installation (for development)
+pi install ./apify-pi-plugin
+
+# OR npm registry installation (once published)
+pi install npm:apify-pi-plugin
+```
+
+After installation, the plugin will be automatically loaded in every Pi session:
+
+```bash
+pi  # Start a session - the apify tool and /apify commands are auto-loaded
+```
+
+### Alternative: Per-invocation load
+
+For one-time use without persistent installation:
 
 ```bash
 pi -e apify-pi-plugin
