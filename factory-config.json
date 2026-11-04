@@ -18,5 +18,9 @@
       "context/PLUGIN_SKILL.md",
       "CLAUDE.md"
     ]
-  }
+  },
+  "api_keys": [
+    "OPENROUTER_API_KEY",
+    "APIFY_API_KEY"
+  ]
 }

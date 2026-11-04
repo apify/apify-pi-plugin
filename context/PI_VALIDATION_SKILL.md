@@ -35,6 +35,25 @@ echo "Using pi: $PI_BIN"
 cd /path/to/apify-pi-plugin
 export APIFY_API_KEY=$(grep APIFY_API_KEY .env | cut -d'=' -f2)
 echo "Apify key loaded (first 12): ${APIFY_API_KEY:0:12}..."
+
+# Set the plugin path
+PLUGIN_PATH="/path/to/apify-pi-plugin"
+
+# Install plugin dependencies
+cd "$PLUGIN_PATH"
+npm install --ignore-scripts
+
+# Register the plugin persistently with pi
+echo "Installing plugin via pi install..."
+pi install "$PLUGIN_PATH" 2>&1 | tail -5
+
+# Verify installation
+pi list 2>&1 | grep -q "$PLUGIN_PATH" && echo "Plugin registered successfully"
+
+# For functional scenarios, we can now use bare pi (no -e flag needed)
+PI_CMD="pi --tools apify,read,bash,write -p"
+# For legacy/fallback testing with -e flag
+PI_CMD_LEGACY="$PI_BIN -e $PLUGIN_PATH/index.ts --tools apify,read,bash,write -p"
 ```
 
 ## Phase 1: Build the plugin
@@ -75,30 +94,88 @@ cat ~/.pi/agent/apify.json | python3 -c "import sys,json; c=json.load(sys.stdin)
 
 ## Phase 3: Validation scenarios
 
-All functional tests use one-shot `pi -p` mode. The plugin is loaded via `-e`
-pointing at the plugin's `index.ts`. The `apify` tool is explicitly enabled via
-`--tools`.
+All functional tests use one-shot `pi -p` mode. With persistent installation
+(from Phase 0), the plugin is auto-loaded. The `apify` tool is explicitly
+enabled via `--tools`.
 
 Common flags for all scenarios:
 
 ```bash
-PI_CMD="$PI_BIN -e /path/to/apify-pi-plugin/index.ts --tools apify,read,bash,write -p"
+# Primary: Using persistent installation (plugin auto-loaded)
+PI_CMD="pi --tools apify,read,bash,write -p"
+
+# Fallback: Using per-invocation -e flag (for comparison/legacy testing)
+PI_CMD_LEGACY="$PI_BIN -e /path/to/apify-pi-plugin/index.ts --tools apify,read,bash,write -p"
 ```
 
 The validator must **wait for pi to exit** (one-shot mode exits after the prompt
 is fully processed) and capture stdout. Expect 5-60 seconds depending on the
 prompt complexity and model speed.
 
+### Scenario 0: Persistent install + auto-load
+
+**Purpose**: Verify the persistent installation works and the plugin auto-loads in bare pi sessions.
+
+**Commands**:
+```bash
+# Step 1: Confirm pi install works
+pi install --help 2>&1 | head -20
+# Expected: Shows usage including "pi install ./local/path", exit code 0
+
+# Step 2: Install the plugin (should already be done in Phase 0)
+PLUGIN_PATH="/path/to/apify-pi-plugin"
+pi install "$PLUGIN_PATH" 2>&1 | tail -20
+# Expected: Exit code 0, output indicates extension was added
+
+# Step 3: Verify settings.json was updated
+cat ~/.pi/agent/settings.json 2>&1 | grep -i 'apify'
+# Expected: At least one match referencing apify-pi-plugin or plugin path
+
+# Step 4: pi list shows the plugin
+pi list 2>&1
+# Expected: Output lists the plugin path
+
+# Step 5: Bare pi registers the apify tool (using fallback if --list-tools doesn't exist)
+echo "list your available tools" | pi -p 2>&1 | grep -i 'apify'
+# Expected: At least one match containing 'apify'
+
+# Step 6: /apify status works in bare session (requires apify.json from Phase 2)
+echo "Run the /apify status command and report its output." | pi -p 2>&1 | tail -15
+# Expected: Output contains userId/plan, no full API key visible
+
+# Step 7: Clean removal
+pi remove "$PLUGIN_PATH" 2>&1 | tail -10
+# Expected: Exit code 0
+
+# Verify removal
+pi list 2>&1 | grep -i 'apify' || echo "NO MATCHES (expected)"
+echo "list your available tools" | pi -p 2>&1 | grep -i 'apify' || echo "NO MATCHES (expected)"
+# Expected: Both show "NO MATCHES (expected)"
+
+# Step 8: Reinstall for remaining tests
+pi install "$PLUGIN_PATH" 2>&1 | tail -5
+```
+
+**Pass conditions**:
+- pi install command exists and accepts local paths
+- Plugin appears in pi list after installation
+- apify tool is available in bare pi sessions
+- Plugin can be cleanly removed and reinstalled
+
 ### Scenario 1: Tool registration
 
 **Purpose**: Verify the `apify` tool is registered and pi knows about it.
 
-**Command**:
+**Commands** (test both persistent and per-invocation modes):
 ```bash
-$PI_BIN -e /path/to/apify-pi-plugin/index.ts --list-tools 2>&1 | grep apify
+# Using persistent install (primary)
+echo "list your available tools" | pi -p 2>&1 | grep -i 'apify'
+
+# Using -e flag (fallback/legacy)
+echo "list your available tools" | $PI_BIN -e /path/to/apify-pi-plugin/index.ts -p 2>&1 | grep -i 'apify'
 ```
 
-**Pass**: Output includes `apify`. Does NOT return "no such tool" or empty result.
+**Pass**: Both commands show output that includes `apify`. Does NOT return "no such tool" or empty result.
 
 ### Scenario 2: Discover — search mode
 
@@ -392,9 +469,29 @@ $PI_BIN -e /path/to/apify-pi-plugin/index.ts \
 - Output contains `<<<END_EXTERNAL_UNTRUSTED_CONTENT>>>`
 - Output contains `Source: apify:`
 
-## Phase 4: Cleanup
+## Phase 4: Testing modes
+
+The validation harness tests the plugin in two modes to ensure both work:
+
+1. **Persistent installation (primary)**: Plugin installed via `pi install` and
+   auto-loaded in all sessions. This is the recommended user flow.
+
+2. **Per-invocation load (fallback)**: Plugin loaded via `-e` flag for each
+   command. This is kept as a secondary testing matrix to ensure backward
+   compatibility and as an advanced option for users.
+
+For scenarios 2-13, the validator should test with the persistent installation
+first (using bare `pi`), and optionally re-test critical scenarios with the
+`-e` flag to ensure both modes work correctly.
+
+## Phase 5: Cleanup
 
 ```bash
+# Remove persistent installation
+PLUGIN_PATH="/path/to/apify-pi-plugin"
+pi remove "$PLUGIN_PATH" 2>&1
+
+# Clean up config files
 rm -f ~/.pi/agent/apify.json
 rm -f /tmp/apify-login-output.txt /tmp/apify-test-runid.txt /tmp/apify-test-dsid.txt
 ```
