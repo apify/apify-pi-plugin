@@ -1,35 +1,35 @@
 import type { AgentToolResult } from "@earendil-works/pi-coding-agent";
-import type { ApifyToolParams, StartDetails } from "../utils/types.ts";
-import { validateSlug } from "../security/index.ts";
+import type { ApifyClient } from "apify-client";
+import type { ApifyToolParams, ErrorDetails, StartDetails } from "../utils/types.ts";
+import { validateActorRef } from "../security/index.ts";
+import { errorMessage } from "../utils/errors.ts";
 
 /**
- * Handle start action (launch actor run).
+ * Handle start action (launch Actor run).
  */
 export async function handleStart(
-  client: any, // ApifyClient
-  params: ApifyToolParams,
-  config: any // ApifyConfig
-): Promise<AgentToolResult<StartDetails>> {
+  client: ApifyClient,
+  params: ApifyToolParams
+): Promise<AgentToolResult<StartDetails | ErrorDetails>> {
   // Validate required params
   if (!params.actorId) {
     return {
       content: [{ type: "text", text: "start action requires 'actorId' parameter" }],
-      details: {} as StartDetails,
+      details: { error: "missing_actor_id" },
     };
   }
 
   if (!params.input || typeof params.input !== "object") {
     return {
       content: [{ type: "text", text: "start action requires 'input' parameter (JSON object)" }],
-      details: {} as StartDetails,
+      details: { error: "missing_input" },
     };
   }
 
   try {
-    // Validate and normalize slug
-    const actorId = validateSlug(params.actorId);
+    const actorId = validateActorRef(params.actorId);
 
-    // Start the actor run (no waitForFinish - return immediately)
+    // Start the Actor run (no waitForFinish - return immediately)
     const run = await client.actor(actorId).start(params.input);
 
     const details: StartDetails = {
@@ -48,10 +48,9 @@ export async function handleStart(
       details,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
-      content: [{ type: "text", text: `Failed to start actor run: ${errorMessage}` }],
-      details: {} as StartDetails,
+      content: [{ type: "text", text: `Failed to start Actor run: ${errorMessage(error)}` }],
+      details: { error: "start_failed" },
     };
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "apify-pi-plugin",
   "version": "1.0.0",
-  "description": "Apify Actor integration for Pi agent -- universal apify tool (discover/start/collect) wrapping 20,000+ Actors",
+  "description": "Apify Actor integration for the Pi agent: one apify tool (discover/start/collect) for any Actor in Apify Store",
   "type": "module",
   "main": "./index.ts",
   "exports": {
@@ -14,20 +14,27 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "node test-structure.js",
+    "test": "vitest --run",
     "setup:pi": "bash scripts/setup.sh",
-    "cleanup:pi": "rm -rf .pi-install ~/.pi/agent/auth.json ~/.pi/agent/apify.json 2>/dev/null; true"
+    "cleanup:pi": "rm -rf .pi-install"
   },
   "dependencies": {
-    "apify-client": "^2.9.12"
+    "apify-client": "^2.26.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
   },
   "devDependencies": {
+    "@earendil-works/pi-ai": "1.5.0",
+    "@earendil-works/pi-coding-agent": "1.5.0",
+    "@earendil-works/pi-tui": "1.5.0",
     "@types/node": "^22.10.5",
-    "typescript": "^5.9.3"
+    "typebox": "1.3.27",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
   },
   "keywords": [
     "apify",
@@ -38,5 +45,8 @@
     "automation"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "overrides": {
+    "basic-ftp": "^6.2.6"
+  }
 }

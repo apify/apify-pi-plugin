@@ -1,11 +1,11 @@
-import { Type } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import { apifyExecute } from "./actions/index.ts";
 import { KNOWN_ACTORS } from "./utils/constants.ts";
 
 // Build the full tool description
 const toolDescription = `
-Universal Apify Actor integration. Access 20,000+ web scraping and automation Actors through three primitives: discover (search/schema), start (launch runs), collect (poll & fetch results).
+Universal Apify Actor integration. Run any web scraping or automation Actor from Apify Store through three primitives: discover (search/schema), start (launch runs), collect (poll and fetch results).
 
 WORKFLOW:
 1. discover → search for an Actor (query) or inspect its schema (actorId)
@@ -38,7 +38,7 @@ const toolParams = Type.Object({
     description: "Search query for finding Actors in the Store. Used with action='discover'."
   })),
   actorId: Type.Optional(Type.String({
-    description: "Actor slug (e.g. 'apify~instagram-scraper') or ID. Used with action='discover' to fetch schema/README, or with action='start' to launch a run."
+    description: "Actor slug (e.g. 'apify~instagram-scraper') or Actor ID. Used with action='discover' to fetch schema/README, or with action='start' to launch a run."
   })),
 
   // start-mode fields
@@ -61,7 +61,7 @@ const toolParams = Type.Object({
 
   // shared
   maxResults: Type.Optional(Type.Number({
-    description: "Max characters for dataset output. Default 50000."
+    description: "Max characters of dataset output for the whole collect response, shared across all runs. Defaults to the user's configured limit (50000 unless changed); you can only lower it."
   })),
 }, { additionalProperties: false });
 
@@ -73,7 +73,7 @@ export const apifyTool = defineTool({
   parameters: toolParams,
   executionMode: "sequential",  // Tool calls execute one at a time
   execute: apifyExecute,
-  promptSnippet: "Apify - Run web scraping and automation Actors",
+  promptSnippet: "Apify: run web scraping and automation Actors",
   promptGuidelines: [
     "Always use the apify tool with the workflow: discover (search) → discover (schema) → start → collect (repeat until allDone)",
     "Actor slugs must use tilde (~) not slash (/). Example: apify~instagram-scraper",

@@ -1,158 +1,159 @@
 import type { AgentToolResult } from "@earendil-works/pi-coding-agent";
-import type { ApifyToolParams, DiscoverDetails } from "../utils/types.ts";
-import { validateSlug } from "../security/index.ts";
+import type { ApifyClient } from "apify-client";
+import type { ApifyToolParams, DiscoverDetails, ErrorDetails } from "../utils/types.ts";
+import { validateActorRef, wrapUntrustedContent } from "../security/index.ts";
+import { MAX_README_CHARS, MAX_SCHEMA_CHARS } from "../utils/constants.ts";
+import { errorMessage } from "../utils/errors.ts";
 
 /**
  * Handle discover action (search or schema mode).
  */
 export async function handleDiscover(
-  client: any, // ApifyClient
-  params: ApifyToolParams,
-  config: any // ApifyConfig
-): Promise<AgentToolResult<DiscoverDetails>> {
+  client: ApifyClient,
+  params: ApifyToolParams
+): Promise<AgentToolResult<DiscoverDetails | ErrorDetails>> {
   // Validate: need exactly one of query or actorId
   if (!params.query && !params.actorId) {
     return {
       content: [{ type: "text", text: "discover action requires either 'query' (to search) or 'actorId' (to get schema)" }],
-      details: { mode: "search" },
+      details: { error: "missing_query_or_actor_id" },
     };
   }
 
   if (params.query && params.actorId) {
     return {
       content: [{ type: "text", text: "discover action requires either 'query' OR 'actorId', not both" }],
-      details: { mode: "search" },
+      details: { error: "both_query_and_actor_id" },
     };
   }
 
-  // Search mode
   if (params.query) {
-    try {
-      const results = await client.store().list({
-        search: params.query,
-        limit: 10,
-        sortBy: "relevance",
-      });
+    return searchStore(client, params.query);
+  }
+  return describeActor(client, params.actorId!);
+}
 
-      // Format as compact Markdown list
-      let text = `## Search results for "${params.query}"\n\n`;
+/**
+ * Search mode: list matching Actors from Apify Store.
+ */
+async function searchStore(client: ApifyClient, query: string): Promise<AgentToolResult<DiscoverDetails | ErrorDetails>> {
+  try {
+    const results = await client.store().list({
+      search: query,
+      limit: 10,
+      sortBy: "relevance",
+    });
 
-      if (!results.items || results.items.length === 0) {
-        text += "No actors found matching your query.\n\n";
-      } else {
-        for (const item of results.items) {
-          const slug = `${item.username}~${item.name}`;
-          const description = item.description ? item.description.slice(0, 100) + (item.description.length > 100 ? "..." : "") : "No description";
-          const pricing = item.pricingModel || "unknown";
-          const runCount = item.stats?.totalRuns || 0;
+    let text = `## Search results for "${query}"\n\n`;
 
-          text += `### ${item.title || item.name}\n`;
-          text += `- **Slug:** \`${slug}\`\n`;
-          text += `- **Runs:** ${runCount.toLocaleString()}\n`;
-          text += `- **Pricing:** ${pricing}\n`;
-          text += `- **Description:** ${description}\n\n`;
-        }
+    if (!results.items || results.items.length === 0) {
+      text += "No Actors found matching your query.\n\n";
+    } else {
+      // Titles and descriptions are written by Actor publishers, so they go inside the untrusted wrapper.
+      // The slug is built from the username and Actor name.
+      let listing = "";
+      for (const item of results.items as any[]) {
+        const slug = `${item.username}~${item.name}`;
+        const description = item.description ? item.description.slice(0, 100) + (item.description.length > 100 ? "..." : "") : "No description";
+        const pricing = item.currentPricingInfo?.pricingModel || "unknown";
+        const runCount = item.stats?.totalRuns || 0;
+
+        listing += `### ${item.title || item.name}\n`;
+        listing += `- **Slug:** \`${slug}\`\n`;
+        listing += `- **Runs:** ${runCount.toLocaleString()}\n`;
+        listing += `- **Pricing:** ${pricing}\n`;
+        listing += `- **Description:** ${description}\n\n`;
       }
+      text += wrapUntrustedContent(listing.trimEnd(), "store") + "\n\n";
+    }
 
-      text += `**Tip:** To inspect an Actor's input schema and README, call apify with action="discover" and actorId="username~actor-name".`;
+    text += `**Tip:** To inspect an Actor's input schema and README, call apify with action="discover" and actorId="username~actor-name".`;
 
+    return {
+      content: [{ type: "text", text }],
+      details: {
+        mode: "search",
+        results: results.items,
+      },
+    };
+  } catch (error) {
+    return {
+      content: [{ type: "text", text: `Search failed: ${errorMessage(error)}` }],
+      details: { error: "search_failed" },
+    };
+  }
+}
+
+/**
+ * Schema mode: the Actor's default build → input schema and README.
+ */
+async function describeActor(client: ApifyClient, actorRef: string): Promise<AgentToolResult<DiscoverDetails | ErrorDetails>> {
+  try {
+    const actorId = validateActorRef(actorRef);
+    const actorClient = client.actor(actorId);
+
+    const actor = await actorClient.get();
+    if (!actor) {
       return {
-        content: [{ type: "text", text }],
-        details: {
-          mode: "search",
-          results: results.items,
-        },
-      };
-    } catch (error) {
-      return {
-        content: [{ type: "text", text: `Search failed: ${error instanceof Error ? error.message : String(error)}` }],
-        details: { mode: "search" },
+        content: [{ type: "text", text: `Actor not found: ${actorId}` }],
+        details: { error: "actor_not_found" },
       };
     }
+
+    // The build that start() runs: the Actor's configured default build.
+    // An Actor without a usable default build still gets its title and description shown.
+    const build = await actorClient.defaultBuild()
+      .then((buildClient) => buildClient.get())
+      .catch(() => undefined);
+
+    // Prefer actorDefinition; fall back to the deprecated top-level build fields
+    const inputSchema = build?.actorDefinition?.input ?? parseJson(build?.inputSchema);
+    const fullReadme = build?.actorDefinition?.readme ?? build?.readme ?? (actor as any).readmeSummary;
+    const readme = fullReadme
+      ? fullReadme.slice(0, MAX_README_CHARS) + (fullReadme.length > MAX_README_CHARS ? "\n\n[...README truncated]" : "")
+      : undefined;
+
+    // Everything below except the slug and the tip comes from the Actor publisher
+    let about = `Title: ${actor.title || actor.name}\n`;
+    about += `Description: ${actor.description || "No description"}`;
+
+    let text = `## Actor: \`${actorId}\`\n\n`;
+    text += wrapUntrustedContent(about, actorId, MAX_README_CHARS) + "\n\n";
+
+    text += `### Input schema\n\n`;
+    text += inputSchema
+      ? wrapUntrustedContent(inputSchema, actorId, MAX_SCHEMA_CHARS)
+      : "No input schema available for this Actor.";
+    text += "\n\n";
+
+    text += `### README\n\n`;
+    text += readme ? wrapUntrustedContent(readme, actorId, MAX_README_CHARS + 100) : "No README available.";
+    text += "\n\n";
+
+    text += `**Tip:** To run this Actor, call apify with action="start", actorId="${actorId}" and input={...}.`;
+
+    return {
+      content: [{ type: "text", text }],
+      details: {
+        mode: "schema",
+        actor,
+        schema: inputSchema,
+        readme,
+      },
+    };
+  } catch (error) {
+    return {
+      content: [{ type: "text", text: `Failed to get Actor info: ${errorMessage(error)}` }],
+      details: { error: "actor_info_failed" },
+    };
   }
+}
 
-  // Schema mode
-  if (params.actorId) {
-    try {
-      // Validate and normalize slug
-      const actorId = validateSlug(params.actorId);
-
-      // Get actor info
-      const actor = await client.actor(actorId).get();
-      if (!actor) {
-        return {
-          content: [{ type: "text", text: `Actor not found: ${actorId}` }],
-          details: { mode: "schema" },
-        };
-      }
-
-      // Get default build
-      const builds = await client.actor(actorId).builds().list({ limit: 1 });
-      const defaultBuild = builds?.items?.[0];
-
-      // Extract input schema
-      let inputSchema = null;
-      if (defaultBuild?.meta?.inputSchema) {
-        inputSchema = defaultBuild.meta.inputSchema;
-      } else if (defaultBuild?.inputSchema) {
-        inputSchema = defaultBuild.inputSchema;
-      }
-
-      // Get README (clipped to ~3000 chars)
-      const readme = actor.readme ? actor.readme.slice(0, 3000) + (actor.readme.length > 3000 ? "\n\n[...README truncated]" : "") : "No README available";
-
-      // Format response
-      let text = `## Actor: ${actor.title || actor.name}\n\n`;
-      text += `**Slug:** \`${actorId}\`\n`;
-      text += `**Description:** ${actor.description || "No description"}\n\n`;
-
-      if (inputSchema) {
-        text += `### Input Schema\n\n`;
-        // Format schema as compact JSON summary
-        const schemaProps = inputSchema.properties || {};
-        const required = inputSchema.required || [];
-        text += "```json\n";
-        text += JSON.stringify({
-          title: inputSchema.title,
-          type: inputSchema.type,
-          properties: Object.keys(schemaProps).reduce((acc, key) => {
-            acc[key] = {
-              type: schemaProps[key].type,
-              description: schemaProps[key].description?.slice(0, 100),
-              required: required.includes(key),
-            };
-            return acc;
-          }, {} as any),
-        }, null, 2);
-        text += "\n```\n\n";
-      } else {
-        text += "### Input Schema\n\nNo schema available for this actor.\n\n";
-      }
-
-      text += `### README\n\n${readme}\n\n`;
-
-      text += `**Tip:** To run this Actor, call apify with action="start", actorId="${actorId}" and input={...}.`;
-
-      return {
-        content: [{ type: "text", text }],
-        details: {
-          mode: "schema",
-          actor,
-          schema: inputSchema,
-          readme,
-        },
-      };
-    } catch (error) {
-      return {
-        content: [{ type: "text", text: `Failed to get actor info: ${error instanceof Error ? error.message : String(error)}` }],
-        details: { mode: "schema" },
-      };
-    }
+function parseJson(value: string | undefined): unknown {
+  if (!value) return undefined;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
   }
-
-  // Shouldn't reach here
-  return {
-    content: [{ type: "text", text: "Invalid discover parameters" }],
-    details: { mode: "search" },
-  };
 }

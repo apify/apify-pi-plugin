@@ -1,62 +1,56 @@
-// Tool parameters interface
+import type { ApifyAction } from "./config.ts";
+
+// A started run, as returned by start and passed back into collect
+export interface RunReference {
+  runId: string;
+  actorId: string;
+  datasetId: string;
+  label?: string;
+}
+
+// Tool parameters interface (mirrors the TypeBox schema in src/tool.ts)
 export interface ApifyToolParams {
-  action: "discover" | "start" | "collect";
+  action: ApifyAction;
   // discover-mode fields
   query?: string;
   actorId?: string;
   // start-mode fields
-  input?: Record<string, any>;
+  input?: Record<string, unknown>;
   label?: string;
   // collect-mode fields
-  runReferences?: Array<{
-    runId: string;
-    actorId: string;
-    datasetId: string;
-    label?: string;
-  }>;
+  runReferences?: RunReference[];
   // shared
   maxResults?: number;
 }
 
 // Tool details interfaces
+export interface ErrorDetails {
+  error: string;
+}
+
 export interface DiscoverDetails {
   mode: "search" | "schema";
-  results?: any[];
-  actor?: any;
-  schema?: any;
+  results?: unknown[];
+  actor?: unknown;
+  schema?: unknown;
   readme?: string;
 }
 
-export interface StartDetails {
-  runId: string;
-  actorId: string;
-  datasetId: string;
-  label?: string;
+export interface StartDetails extends RunReference {
   status: string;
 }
 
 export interface CollectDetails {
-  completed: Array<{
-    runId: string;
-    actorId: string;
-    datasetId: string;
-    label?: string;
+  completed: Array<RunReference & {
     status: string;
-    itemCount: number;
-    items: any[];
+    itemCount: number;   // items returned (at most MAX_ITEMS_PER_DATASET)
+    totalItems: number;  // items in the dataset
   }>;
-  pending: Array<{
-    runId: string;
-    actorId: string;
-    datasetId: string;
-    label?: string;
+  pending: Array<RunReference & {
     status: string;
+    lastError?: string;  // set when polling failed and will be retried
   }>;
-  errors: Array<{
-    runId: string;
-    actorId: string;
-    datasetId: string;
-    label?: string;
+  errors: Array<RunReference & {
     status: string;
     error: string;
   }>;
@@ -68,4 +62,4 @@ export interface CollectDetails {
   };
 }
 
-export type ApifyToolDetails = DiscoverDetails | StartDetails | CollectDetails;
+export type ApifyToolDetails = DiscoverDetails | StartDetails | CollectDetails | ErrorDetails;

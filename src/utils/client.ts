@@ -1,34 +1,41 @@
 import { ApifyClient } from "apify-client";
 import type { ApifyConfig } from "./config.ts";
-import { normalizeSecretInput } from "../security/index.ts";
 import { resolveApiKey } from "./config.ts";
+import { DEFAULT_BASE_URL } from "./constants.ts";
+import { errorMessage } from "./errors.ts";
+import { normalizeSecretInput, validateBaseUrl } from "../security/index.ts";
+
+export type ClientErrorCode = "missing_credential" | "invalid_base_url";
+
+export type ClientResult =
+  | { ok: true; client: ApifyClient; apiKey: string }
+  | { ok: false; error: ClientErrorCode; message: string };
 
 /**
  * Create an ApifyClient instance with proper configuration and telemetry headers.
+ * Never throws: a missing key or a disallowed baseUrl is returned as a structured error.
  * @param config - The Apify configuration
  * @param apiKey - Optional explicit API key (overrides config)
- * @returns Configured ApifyClient or undefined if no key available
  */
-export function createClient(config: ApifyConfig, apiKey?: string): ApifyClient | undefined {
-  // Resolve the API key
-  const key = apiKey || resolveApiKey(config);
+export function createClient(config: ApifyConfig, apiKey?: string): ClientResult {
+  const key = apiKey ? normalizeSecretInput(apiKey) : resolveApiKey(config);
   if (!key) {
-    return undefined;
+    return {
+      ok: false,
+      error: "missing_credential",
+      message: "No Apify API key configured. Run /apify login or set the APIFY_API_KEY environment variable.",
+    };
   }
 
-  // Normalize the key (strip dangerous whitespace)
-  const normalizedKey = normalizeSecretInput(key);
-
-  // Validate baseUrl for SSRF protection
-  const baseUrl = config.baseUrl || "https://api.apify.com";
-  if (!baseUrl.startsWith("https://api.apify.com")) {
-    throw new Error("baseUrl must start with https://api.apify.com");
+  // SSRF guard: the key is only ever sent to https://api.apify.com
+  const baseUrlCheck = validateBaseUrl(config.baseUrl || DEFAULT_BASE_URL);
+  if (!baseUrlCheck.ok) {
+    return { ok: false, error: "invalid_base_url", message: baseUrlCheck.message };
   }
 
-  // Create client with telemetry headers via request interceptor
   const client = new ApifyClient({
-    token: normalizedKey,
-    baseUrl,
+    token: key,
+    baseUrl: baseUrlCheck.baseUrl,
     // Add request interceptor for telemetry headers
     requestInterceptors: [
       (requestOptions: any) => {
@@ -42,7 +49,18 @@ export function createClient(config: ApifyConfig, apiKey?: string): ApifyClient 
     ],
   });
 
-  return client;
+  return { ok: true, client, apiKey: key };
+}
+
+/**
+ * Format a client error as the JSON payload the tool returns to the agent.
+ */
+export function formatClientError(result: { error: ClientErrorCode; message: string }): string {
+  return JSON.stringify({
+    error: result.error,
+    message: result.message,
+    docs: "https://docs.apify.com/api/v2",
+  }, null, 2);
 }
 
 /**
@@ -66,7 +84,7 @@ export async function testConnectivity(client: ApifyClient): Promise<{
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
     };
   }
 }

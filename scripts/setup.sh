@@ -1,27 +1,40 @@
 #!/usr/bin/env bash
+# Set up an isolated pi for developing and validating this plugin.
+# Everything lives in .pi-install/: the pi binary and its config dir (PI_CODING_AGENT_DIR).
+# Your real ~/.pi/agent is never read or written.
 set -euo pipefail
+
+PI_VERSION="1.5.0"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 PI_DIR="$REPO_ROOT/.pi-install"
+export PI_CODING_AGENT_DIR="$PI_DIR/agent"
+PI_BIN="$PI_DIR/node_modules/.bin/pi"
+ENV_FILE="$REPO_ROOT/.env"
 
-echo "=== Setting up pi ==="
+echo "=== Setting up pi $PI_VERSION in $PI_DIR ==="
 
-mkdir -p "$PI_DIR"
-
-echo "Installing pi..."
-npm install --ignore-scripts --prefix "$PI_DIR" @earendil-works/pi-coding-agent
-
-echo "Configuring OpenRouter provider..."
-OPENROUTER_API_KEY=$(grep -E '^OPENROUTER_API_KEY=' "$REPO_ROOT/.env" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
-
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Error: $ENV_FILE not found. Create it with OPENROUTER_API_KEY=..."
+  exit 1
+fi
+OPENROUTER_API_KEY=$(grep -E '^OPENROUTER_API_KEY=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'" || true)
 if [ -z "$OPENROUTER_API_KEY" ] || [ "$OPENROUTER_API_KEY" = "your_api_key_here" ]; then
-  echo "Error: OPENROUTER_API_KEY not found or still placeholder in $REPO_ROOT/.env"
+  echo "Error: OPENROUTER_API_KEY not found or still placeholder in $ENV_FILE"
   exit 1
 fi
 
-mkdir -p ~/.pi/agent
-cat > ~/.pi/agent/auth.json << AUTH_EOF
+mkdir -p "$PI_DIR"
+echo "Installing pi..."
+npm install --ignore-scripts --no-audit --no-fund --prefix "$PI_DIR" "@earendil-works/pi-coding-agent@$PI_VERSION"
+
+echo "Configuring OpenRouter provider..."
+mkdir -p "$PI_CODING_AGENT_DIR"
+# umask so the file is never readable by others, not even briefly
+(
+  umask 077
+  cat > "$PI_CODING_AGENT_DIR/auth.json" << AUTH_EOF
 {
   "openrouter": {
     "type": "api_key",
@@ -29,22 +42,17 @@ cat > ~/.pi/agent/auth.json << AUTH_EOF
   }
 }
 AUTH_EOF
-chmod 600 ~/.pi/agent/auth.json
+)
 
-echo "pi setup complete (installed at $PI_DIR)"
-
-# Register the plugin persistently with pi
-echo "Registering apify-pi-plugin with pi..."
-if command -v pi >/dev/null 2>&1; then
-  # Check if plugin is already installed
-  if pi list 2>&1 | grep -q "apify-pi-plugin"; then
-    echo "Plugin already registered with pi"
-  else
-    # Install the plugin using the local path
-    pi install "$REPO_ROOT" 2>&1 | tail -5
-    echo "Plugin registered. It will be auto-loaded in all pi sessions."
-  fi
+echo "Registering apify-pi-plugin with the isolated pi..."
+if "$PI_BIN" list 2>&1 | grep -q "apify-pi-plugin"; then
+  echo "Plugin already registered"
 else
-  echo "Warning: 'pi' command not found in PATH. Plugin not registered."
-  echo "After adding pi to PATH, run: pi install $REPO_ROOT"
+  "$PI_BIN" install "$REPO_ROOT" 2>&1 | tail -5
 fi
+
+echo
+echo "pi setup complete. To use it:"
+echo "  export PI_CODING_AGENT_DIR=\"$PI_CODING_AGENT_DIR\""
+echo "  \"$PI_BIN\""
+echo "Remove it with: npm run cleanup:pi"

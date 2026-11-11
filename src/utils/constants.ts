@@ -1,11 +1,26 @@
-// Maximum characters for dataset output
+// The only Apify API origin the plugin will send the API key to
+export const DEFAULT_BASE_URL = "https://api.apify.com";
+
+// Maximum characters of dataset output per collect call (shared across all runs)
 export const MAX_RESULT_CHARS = 50_000;
+
+// Maximum number of dataset items fetched per run
+export const MAX_ITEMS_PER_DATASET = 100;
+
+// Maximum characters of an Actor's input schema and README shown by discover
+export const MAX_SCHEMA_CHARS = 20_000;
+export const MAX_README_CHARS = 3_000;
+
+// Where users get their API token
+export const CONSOLE_INTEGRATIONS_URL =
+  "https://console.apify.com/settings/integrations?utm_source=pi&utm_medium=integration";
 
 // Untrusted content markers
 export const EXTERNAL_CONTENT_START = "<<<EXTERNAL_UNTRUSTED_CONTENT>>>";
 export const EXTERNAL_CONTENT_END = "<<<END_EXTERNAL_UNTRUSTED_CONTENT>>>";
 
-// Known actors catalog for the tool description
+// Known Actors catalog for the tool description.
+// Copied from the Apify OpenClaw plugin (apify/apify-openclaw-plugin), which keeps the same list inline.
 export const KNOWN_ACTORS = `
 INSTAGRAM: apify~instagram-profile-scraper, apify~instagram-post-scraper, apify~instagram-comment-scraper, apify~instagram-hashtag-scraper, apify~instagram-hashtag-stats, apify~instagram-reel-scraper, apify~instagram-search-scraper, apify~instagram-tagged-scraper, apify~instagram-followers-count-scraper, apify~instagram-scraper, apify~instagram-api-scraper, apify~export-instagram-comments-posts
 

@@ -9,33 +9,35 @@ export function normalizeSecretInput(input: string): string {
     .trim();
 }
 
+// Apify object IDs are 17 alphanumeric characters
+const ACTOR_ID_PATTERN = /^[a-zA-Z0-9]{17}$/;
+
 /**
- * Validate and normalize actor slug format.
- * Ensures slug uses tilde (~) not slash (/).
- * @param slug - The actor slug to validate
- * @returns Valid slug or throws error if invalid
+ * Validate an Actor reference: either a slug (username~actor-name) or an Actor ID.
+ * Slugs must use tilde (~), not slash (/).
+ * @param actorRef - The Actor slug or ID to validate
+ * @returns The valid reference, or throws an error if invalid
  */
-export function validateSlug(slug: string): string {
-  if (!slug) {
-    throw new Error("Actor slug is required");
+export function validateActorRef(actorRef: string): string {
+  if (!actorRef) {
+    throw new Error("Actor slug or ID is required");
+  }
+
+  if (ACTOR_ID_PATTERN.test(actorRef)) {
+    return actorRef;
   }
 
   // REJECT slash-based slugs entirely (per spec requirement)
-  if (slug.includes("/")) {
-    throw new Error(`Invalid actor slug format: "${slug}". Slugs must use tilde (~) not slash (/). Use format: username~actor-name`);
+  if (actorRef.includes("/")) {
+    throw new Error(`Invalid Actor slug: "${actorRef}". Use a tilde (~), not a slash (/): username~actor-name`);
   }
 
-  // Validate format: username~actor-name
-  if (!slug.includes("~")) {
-    throw new Error(`Invalid actor slug format: "${slug}". Use format: username~actor-name (with tilde, not slash)`);
-  }
-
-  const parts = slug.split("~");
+  const parts = actorRef.split("~");
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    throw new Error(`Invalid actor slug format: "${slug}". Use format: username~actor-name`);
+    throw new Error(`Invalid Actor slug: "${actorRef}". Use username~actor-name or an Actor ID.`);
   }
 
-  return slug;
+  return actorRef;
 }
 
 /**

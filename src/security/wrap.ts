@@ -11,17 +11,17 @@ function sanitizeForMarkers(content: string): string {
 }
 
 /**
- * Wrap dataset results in untrusted content markers.
- * This is the primary defense against prompt injection via scraped content.
+ * Wrap third-party content (dataset rows, Actor READMEs, schemas, Store listings, run messages)
+ * in untrusted content markers. This is the primary defense against prompt injection.
  *
- * @param content - The dataset content to wrap
- * @param actorId - The actor ID for source attribution
+ * @param content - The content to wrap
+ * @param source - Where the content came from, e.g. the Actor slug
  * @param maxChars - Maximum characters before truncation (default: MAX_RESULT_CHARS)
  * @returns Wrapped and potentially truncated content
  */
 export function wrapUntrustedContent(
-  content: any,
-  actorId: string,
+  content: unknown,
+  source: string,
   maxChars: number = MAX_RESULT_CHARS
 ): string {
   // Serialize to JSON
@@ -30,7 +30,7 @@ export function wrapUntrustedContent(
   // Truncate if needed
   let truncated = false;
   if (serialized.length > maxChars) {
-    serialized = serialized.slice(0, maxChars);
+    serialized = serialized.slice(0, Math.max(0, maxChars));
     truncated = true;
   }
 
@@ -39,7 +39,7 @@ export function wrapUntrustedContent(
 
   // Build wrapped content
   let wrapped = `${EXTERNAL_CONTENT_START}\n`;
-  wrapped += `Source: apify:${actorId}\n`;
+  wrapped += `Source: apify:${source}\n`;
   wrapped += `---CONTENT---\n`;
   wrapped += sanitized;
   if (truncated) {
@@ -49,13 +49,4 @@ export function wrapUntrustedContent(
   wrapped += EXTERNAL_CONTENT_END;
 
   return wrapped;
-}
-
-/**
- * Calculate if content will be truncated.
- * Useful for pre-flight checks.
- */
-export function willBeTruncated(content: any, maxChars: number = MAX_RESULT_CHARS): boolean {
-  const serialized = typeof content === "string" ? content : JSON.stringify(content, null, 2);
-  return serialized.length > maxChars;
 }

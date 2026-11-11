@@ -1,55 +1,57 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { createClient, testConnectivity } from "../utils/client.ts";
-import { loadConfig, writeGlobalConfig } from "../utils/config.ts";
-import { normalizeSecretInput, fingerprintKey } from "../security/index.ts";
+import { getGlobalConfigPath, readGlobalConfig, writeGlobalConfig } from "../utils/config.ts";
+import { CONSOLE_INTEGRATIONS_URL } from "../utils/constants.ts";
+import { errorMessage } from "../utils/errors.ts";
+import { fingerprintKey } from "../security/index.ts";
+import { promptSecret } from "./secret-input.ts";
 
 /**
  * Handle /apify login command.
- * Interactive key configuration with masked input.
+ * Asks for the API token (masked in the terminal UI), verifies it,
+ * and with the user's consent saves it to the global config.
+ * @param onSaved - Called after the key is saved, e.g. to register the apify tool
  */
-export async function apifyLoginCommand(ctx: ExtensionContext): Promise<void> {
+export async function apifyLoginCommand(ctx: ExtensionContext, onSaved: () => void): Promise<void> {
   try {
-    // Prompt for API key
-    ctx.ui.notify("Please enter your Apify API key:");
-    ctx.ui.notify("You can find your API key at: https://console.apify.com/account/integrations");
+    ctx.ui.notify(`Get your Apify API token at: ${CONSOLE_INTEGRATIONS_URL}`);
 
-    // Note: The ui.input method doesn't support password masking in Pi's current API
-    // The user will need to paste their key in plain text
-    const keyInput = await ctx.ui.input("Apify API key:", "paste your API key here");
-
-    if (!keyInput || !keyInput.trim()) {
-      ctx.ui.notify("No API key provided. Login cancelled.");
+    const apiKey = await promptSecret(ctx, "Apify API token:");
+    if (!apiKey || !apiKey.trim()) {
+      ctx.ui.notify("No API token provided. Login cancelled.");
       return;
     }
 
-    // Normalize the key
-    const apiKey = normalizeSecretInput(keyInput);
+    // Only the global config: project overrides must never be copied into it
+    const globalConfig = readGlobalConfig();
 
-    // Test the key
-    ctx.ui.notify("Validating API key...");
-    const client = createClient({ apiKey });
-
-    if (!client) {
-      ctx.ui.notify("Failed to create Apify client. Please check your API key.");
+    ctx.ui.notify("Validating API token...");
+    const clientResult = createClient(globalConfig, apiKey);
+    if (!clientResult.ok) {
+      ctx.ui.notify(`❌ ${clientResult.message}`, "error");
       return;
     }
 
-    const result = await testConnectivity(client);
-
-    if (result.success) {
-      // Save the key to global config
-      const config = loadConfig();
-      config.apiKey = apiKey;
-      config.enabled = true;  // Auto-enable
-      writeGlobalConfig(config);
-
-      ctx.ui.notify(`✅ Authenticated as ${result.userId} (${result.plan} plan).`);
-      ctx.ui.notify(`Key saved to ~/.pi/agent/apify.json (fingerprint: ${fingerprintKey(apiKey)})`);
-    } else {
-      ctx.ui.notify(`❌ Authentication failed: ${result.error}`);
-      ctx.ui.notify("Please check your API key and try again.");
+    const result = await testConnectivity(clientResult.client);
+    if (!result.success) {
+      ctx.ui.notify(`❌ Authentication failed: ${result.error}`, "error");
+      ctx.ui.notify("Check your API token and try again.");
+      return;
     }
+
+    ctx.ui.notify(`✅ Authenticated as ${result.userId} (${result.plan} plan).`);
+
+    const configPath = getGlobalConfigPath();
+    const save = await ctx.ui.confirm("Save API token?", `Save the token to ${configPath}? Only your user account can read this file.`);
+    if (!save) {
+      ctx.ui.notify("Token not saved. To use it without saving, set the APIFY_API_KEY environment variable.");
+      return;
+    }
+
+    writeGlobalConfig({ ...globalConfig, apiKey: clientResult.apiKey, enabled: true });
+    onSaved();
+    ctx.ui.notify(`Token saved to ${configPath} (fingerprint: ${fingerprintKey(clientResult.apiKey)})`);
   } catch (error) {
-    ctx.ui.notify(`Error during login: ${error instanceof Error ? error.message : String(error)}`);
+    ctx.ui.notify(`Error during login: ${errorMessage(error)}`, "error");
   }
 }
