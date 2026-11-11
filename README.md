@@ -47,7 +47,7 @@ Run the interactive setup:
 /apify login
 ```
 
-This asks for your API token (hidden as you type), checks it, and asks before saving it to `~/.pi/agent/apify.json`. Only your user account can read that file. Get your token in [Apify Console](https://console.apify.com/settings/integrations?utm_source=pi&utm_medium=integration).
+This asks for your API token (hidden as you type), checks it, and asks before saving it to `~/.pi/agent/apify.json`. Only your user account can read that file. Get your token in [Apify Console](https://console.apify.com/settings/integrations?utm_source=pi&utm_medium=integrations).
 
 If you set `PI_CODING_AGENT_DIR`, the plugin uses `$PI_CODING_AGENT_DIR/apify.json` instead.
 
@@ -180,15 +180,7 @@ Always use tilde (`~`) not slash (`/`) in Actor slugs. Actor IDs also work.
 
 ## Known Actors
 
-The tool includes a curated catalog of popular Actors:
-
-- **Instagram**: `apify~instagram-scraper`, `apify~instagram-profile-scraper`, etc.
-- **Facebook**: `apify~facebook-pages-scraper`, `apify~facebook-posts-scraper`, etc.
-- **TikTok**: `clockworks~tiktok-scraper`, `clockworks~tiktok-profile-scraper`, etc.
-- **YouTube**: `streamers~youtube-scraper`, `streamers~youtube-channel-scraper`, etc.
-- **Google Maps**: `compass~crawler-google-places`, `compass~google-maps-extractor`, etc.
-
-See the full list in the tool description.
+The tool description includes a curated catalog of about 130 popular Actors, grouped by platform, each with a short "best for" note. It's built from `generated/actor-index.md`, the Actor index of the `apify-ultimate-scraper` skill in `apify/apify-plugins-internal`. That repo's CI opens a sync PR here whenever the index changes, so don't edit the file by hand.
 
 ## Security
 
@@ -248,10 +240,13 @@ src/
   utils/                  # single-concern helpers, one flat file each
     config.ts             #   config load / merge / resolve
     client.ts             #   ApifyClient creation + connectivity check
-    constants.ts          #   shared constants (limits, markers, known Actors)
+    constants.ts          #   shared constants (limits, markers, URLs)
+    actor-catalog.ts      #   builds the tool's Actor catalog from generated/actor-index.md
     errors.ts             #   error message helper
     types.ts              #   shared TypeScript interfaces
 test/                     # vitest unit tests
+generated/
+  actor-index.md          # synced from apify-plugins-internal; don't edit by hand
 ```
 
 ## License

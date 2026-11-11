@@ -1,9 +1,10 @@
 import { Type } from "typebox";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import { apifyExecute } from "./actions/index.ts";
-import { KNOWN_ACTORS } from "./utils/constants.ts";
+import { loadActorCatalog } from "./utils/actor-catalog.ts";
 
 // Build the full tool description
+const actorCatalog = loadActorCatalog();
 const toolDescription = `
 Universal Apify Actor integration. Run any web scraping or automation Actor from Apify Store through three primitives: discover (search/schema), start (launch runs), collect (poll and fetch results).
 
@@ -17,10 +18,7 @@ Slugs use tilde: username~actor-name (NEVER slash). Examples: apify~instagram-sc
 
 BATCHING: Most Actors accept arrays in their input. Batching inputs (e.g. multiple URLs in startUrls) into ONE run is far cheaper and faster than multiple single-input runs. Prefer one run with an array over N runs with scalar inputs.
 
-KNOWN ACTORS:
-${KNOWN_ACTORS}
-
-DELEGATION: For large scrapes, call this tool from a sub-agent and return only summary/extracted fields, never the raw dataset. This protects the main agent's context window.
+${actorCatalog ? `KNOWN ACTORS (best for):\n${actorCatalog}\n\n` : ""}DELEGATION: For large scrapes, call this tool from a sub-agent and return only summary/extracted fields, never the raw dataset. This protects the main agent's context window.
 `.trim();
 
 // Define the tool parameters schema
